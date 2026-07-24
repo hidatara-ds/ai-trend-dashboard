@@ -70,9 +70,25 @@ def render_page():
             st.rerun()
 
     # Recent Posts Stream
-    st.markdown("<div class='section-title'>Latest High-Impact Posts</div>", unsafe_allow_html=True)
+    h_col1, h_col2 = st.columns([6, 4])
+    with h_col1:
+        st.markdown("<div class='section-title'>Latest High-Impact Posts</div>", unsafe_allow_html=True)
+    with h_col2:
+        selected_country = st.selectbox(
+            "Filter Nation:",
+            ["all", "International", "China", "Indonesia"],
+            format_func=lambda x: {
+                "all": "🌏 All Nations",
+                "International": "🌐 English (International)",
+                "China": "🇨🇳 China (Chinese)",
+                "Indonesia": "🇮🇩 Indonesia (Indonesian)"
+            }.get(x, x),
+            key="home_nation_filter"
+        )
+
+    home_posts = db.get_posts(country=selected_country, limit=6)
     f1, f2 = st.columns(2)
-    for idx, post in enumerate(posts_data[:6]):
+    for idx, post in enumerate(home_posts):
         with (f1 if idx % 2 == 0 else f2):
             render_feed_card(post)
 

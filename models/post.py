@@ -16,6 +16,8 @@ class Post:
     url: str
     media: Optional[str] = None
     language: str = "en"
+    country: str = "International"
+    translation_en: Optional[str] = None
     id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:

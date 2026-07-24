@@ -84,6 +84,8 @@ class ScoringEngine:
             url=post.url,
             media=post.media,
             language=post.language,
+            country=getattr(post, "country", "International"),
+            translation_en=getattr(post, "translation_en", None),
             id=post.id,
             virality_score=round(virality_score, 1),
             engagement_score=round(engagement_score, 1),

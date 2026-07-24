@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS posts (
     url TEXT NOT NULL,
     media TEXT,
     language TEXT DEFAULT 'en',
+    country TEXT DEFAULT 'International',
+    translation_en TEXT DEFAULT '',
     virality_score REAL DEFAULT 0.0,
     engagement_score REAL DEFAULT 0.0,
     freshness_score REAL DEFAULT 0.0,
@@ -24,6 +26,7 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_posts_platform ON posts(platform);
+CREATE INDEX IF NOT EXISTS idx_posts_country ON posts(country);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at);
 CREATE INDEX IF NOT EXISTS idx_posts_trend_score ON posts(trend_score DESC);
 

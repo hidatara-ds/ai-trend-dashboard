@@ -22,6 +22,7 @@ class DatabaseManager:
     def init_db(self) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         schema_path = Path(__file__).parent / "schema.sql"
+        self._migrate_schema()
         if schema_path.exists():
             schema_sql = schema_path.read_text(encoding="utf-8")
             with self.get_connection() as conn:
@@ -29,6 +30,18 @@ class DatabaseManager:
                 conn.commit()
         self._seed_default_keywords()
         self._seed_default_settings()
+
+    def _migrate_schema(self) -> None:
+        with self.get_connection() as conn:
+            try:
+                conn.execute("ALTER TABLE posts ADD COLUMN country TEXT DEFAULT 'International'")
+            except Exception:
+                pass
+            try:
+                conn.execute("ALTER TABLE posts ADD COLUMN translation_en TEXT DEFAULT ''")
+            except Exception:
+                pass
+            conn.commit()
 
     def _seed_default_keywords(self) -> None:
         with self.get_connection() as conn:
@@ -57,14 +70,16 @@ class DatabaseManager:
         with self.get_connection() as conn:
             for p in posts:
                 post_id = p.id or f"{p.platform}_{hash(p.url or p.text)}"
+                country_val = getattr(p, "country", "International")
+                trans_val = getattr(p, "translation_en", "") or ""
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO posts (
                         id, platform, author, text, hashtags, likes, comments, shares, views,
-                        created_at, url, media, language, virality_score, engagement_score,
+                        created_at, url, media, language, country, translation_en, virality_score, engagement_score,
                         freshness_score, authority_score, platform_weight, trend_score,
                         score_breakdown, summary, entities
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         post_id,
@@ -80,6 +95,8 @@ class DatabaseManager:
                         p.url,
                         p.media,
                         p.language,
+                        country_val,
+                        trans_val,
                         p.virality_score,
                         p.engagement_score,
                         p.freshness_score,
@@ -98,6 +115,7 @@ class DatabaseManager:
     def get_posts(
         self,
         platform: Optional[str] = None,
+        country: Optional[str] = None,
         limit: int = 100,
         search_query: Optional[str] = None,
         sort_by: str = "trend_score"
@@ -108,9 +126,12 @@ class DatabaseManager:
             if platform and platform != "all":
                 query += " AND platform = ?"
                 params.append(platform)
+            if country and country != "all":
+                query += " AND country = ?"
+                params.append(country)
             if search_query:
-                query += " AND (text LIKE ? OR author LIKE ?)"
-                params.extend([f"%{search_query}%", f"%{search_query}%"])
+                query += " AND (text LIKE ? OR author LIKE ? OR translation_en LIKE ?)"
+                params.extend([f"%{search_query}%", f"%{search_query}%", f"%{search_query}%"])
 
             query += f" ORDER BY {sort_by} DESC LIMIT ?"
             params.append(limit)

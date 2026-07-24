@@ -11,13 +11,13 @@ PLOTLY_DARK_LAYOUT = dict(
         gridcolor="#27272a",
         zerolinecolor="#27272a",
         tickfont=dict(color="#a1a1aa"),
-        titlefont=dict(color="#a1a1aa")
+        title_font=dict(color="#a1a1aa")
     ),
     yaxis=dict(
         gridcolor="#27272a",
         zerolinecolor="#27272a",
         tickfont=dict(color="#a1a1aa"),
-        titlefont=dict(color="#a1a1aa")
+        title_font=dict(color="#a1a1aa")
     ),
     margin=dict(l=20, r=20, t=40, b=20),
     legend=dict(

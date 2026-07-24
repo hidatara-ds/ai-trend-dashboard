@@ -6,8 +6,19 @@ Designed with a minimal dark UI inspired by Linear and Vercel.
 
 ---
 
+## Preview & Dashboard Screenshots
+
+### Main Intelligence Dashboard
+![AI Social Trend Intelligence Dashboard](assets/dashboard_home.png)
+
+### Multi-Nation Filter & Chinese English Translation Cards
+![Multi-Nation Filter & Chinese Translation Cards](assets/social_feed_china.png)
+
+---
+
 ## Key Features
 
+- **Multi-Nation & Multi-Language Support**: Filter posts by nation (🌐 **International / English**, 🇨🇳 **China / Chinese**, 🇮🇩 **Indonesia / Indonesian**). Chinese posts automatically include clean **English Translation Cards**.
 - **Multi-Platform Adapters**: Decoupled crawler architecture supporting X (Twitter), Threads, TikTok, Instagram, and Facebook. Each adapter returns a unified schema so platform failures do not block the pipeline.
 - **Explainable Scoring Engine**: Computes multi-factor trend scores derived from engagement volume, time-decay freshness, virality rate, and platform weights.
 - **NLP & Deduplication**: Vector cosine similarity (TF-IDF) filters out duplicate cross-posted content while clustering related posts into distinct AI topics.

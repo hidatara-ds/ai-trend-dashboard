@@ -11,7 +11,18 @@ def render_page():
     )
 
     # Filter & Sort controls
-    c_plat, c_sort, c_search = st.columns([3, 3, 4])
+    c_nation, c_plat, c_sort, c_search = st.columns([3, 3, 3, 3])
+    with c_nation:
+        selected_country = st.selectbox(
+            "Nation Filter:",
+            ["all", "International", "China", "Indonesia"],
+            format_func=lambda x: {
+                "all": "🌏 All Nations",
+                "International": "🌐 English (International)",
+                "China": "🇨🇳 China (Chinese)",
+                "Indonesia": "🇮🇩 Indonesia (Indonesian)"
+            }.get(x, x)
+        )
     with c_plat:
         selected_platform = st.selectbox(
             "Platform Filter:",
@@ -25,10 +36,11 @@ def render_page():
             format_func=lambda x: x.replace("_", " ").title()
         )
     with c_search:
-        search_query = st.text_input("Search post content or author...", "", placeholder="e.g. deepseek, sonnet, karpathy")
+        search_query = st.text_input("Search post or translation...", "", placeholder="e.g. deepseek, kimi, sahabat-ai")
 
     posts = db.get_posts(
         platform=selected_platform,
+        country=selected_country,
         limit=100,
         search_query=search_query.strip() if search_query.strip() else None,
         sort_by=sort_by
