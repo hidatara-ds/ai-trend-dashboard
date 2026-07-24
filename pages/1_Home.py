@@ -79,9 +79,9 @@ def render_page():
             ["all", "International", "China", "Indonesia"],
             format_func=lambda x: {
                 "all": "🌏 All Nations",
-                "International": "🌐 English (International)",
-                "China": "🇨🇳 China (Chinese)",
-                "Indonesia": "🇮🇩 Indonesia (Indonesian)"
+                "International": "🌐 Global",
+                "China": "🇨🇳 China",
+                "Indonesia": "🇮🇩 Indonesia"
             }.get(x, x),
             key="home_nation_filter"
         )

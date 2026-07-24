@@ -15,11 +15,11 @@ def render_feed_card(post: Dict[str, Any]):
     translation_en = post.get("translation_en")
 
     country_badges = {
-        "China": ("🇨🇳 China", "#ea580c", "#fff7ed"),
-        "Indonesia": ("🇮🇩 Indonesia", "#dc2626", "#fef2f2"),
-        "International": ("🌐 Global", "#2563eb", "#eff6ff")
+        "China": ('🇨🇳 China', "rgba(249, 115, 22, 0.15)", "#f97316", "rgba(249, 115, 22, 0.3)"),
+        "Indonesia": ('🇮🇩 Indonesia', "rgba(239, 68, 68, 0.15)", "#ef4444", "rgba(239, 68, 68, 0.3)"),
+        "International": ('🌐 Global', "rgba(59, 130, 246, 0.15)", "#3b82f6", "rgba(59, 130, 246, 0.3)")
     }
-    c_label, c_color, c_bg = country_badges.get(country, ("🌐 Global", "#2563eb", "#eff6ff"))
+    c_label, c_bg, c_text, c_border = country_badges.get(country, ('🌐 Global', "rgba(59, 130, 246, 0.15)", "#3b82f6", "rgba(59, 130, 246, 0.3)"))
 
     likes = format_number(post.get("likes", 0))
     comments = format_number(post.get("comments", 0))
@@ -37,7 +37,7 @@ def render_feed_card(post: Dict[str, Any]):
         f'<div class="feed-header">'
         f'<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">'
         f'<span class="platform-badge badge-{platform}">{platform.upper()}</span>'
-        f'<span style="font-size: 0.7rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: rgba(39, 39, 42, 0.8); color: #e4e4e7; border: 1px solid #3f3f46;">{c_label}</span>'
+        f'<span style="font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 12px; background: {c_bg}; color: {c_text}; border: 1px solid {c_border};">{c_label}</span>'
         f'<span class="feed-author">{author}</span>'
         f'<span style="color: #71717a; font-size: 0.75rem;">• {created_rel}</span>'
         f'</div>'

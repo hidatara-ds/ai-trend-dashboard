@@ -41,9 +41,14 @@ class OpenRouterAnalyzer:
 
         return self._generate_fallback_digest(posts, topics)
 
-    def _call_openrouter_api(self, posts: List[ScoredPost], topics: List[Topic]) -> Dict[str, Any]:
-        top_posts_text = "\n".join([f"- [{p.platform.upper()}] @{p.author}: {p.text}" for p in posts[:15]])
-        topics_text = "\n".join([f"- {t.name} (Score: {t.trend_score}): {t.summary}" for t in topics[:5]])
+    def _call_openrouter_api(self, posts: List[Any], topics: List[Any]) -> Dict[str, Any]:
+        def get_val(item, key, default=""):
+            if isinstance(item, dict):
+                return item.get(key, default)
+            return getattr(item, key, default)
+
+        top_posts_text = "\n".join([f"- [{get_val(p, 'platform', 'x').upper()}] {get_val(p, 'author', '@user')}: {get_val(p, 'text', '')}" for p in posts[:15]])
+        topics_text = "\n".join([f"- {get_val(t, 'name', 'Topic')} (Score: {get_val(t, 'trend_score', 0)}): {get_val(t, 'summary', '')}" for t in topics[:5]])
 
         prompt = f"""
 You are an expert Senior AI Intelligence Analyst. Analyze the following collected social media posts and trending topics:
@@ -88,8 +93,13 @@ Return ONLY raw valid JSON. No conversational text.
             content = data["choices"][0]["message"]["content"]
             return json.loads(content)
 
-    def _generate_fallback_digest(self, posts: List[ScoredPost], topics: List[Topic]) -> Dict[str, Any]:
-        top_topic_names = [t.name for t in topics[:3]] or ["Reasoning Models", "AI Coding Assistants"]
+    def _generate_fallback_digest(self, posts: List[Any], topics: List[Any]) -> Dict[str, Any]:
+        def get_val(item, key, default=""):
+            if isinstance(item, dict):
+                return item.get(key, default)
+            return getattr(item, key, default)
+
+        top_topic_names = [get_val(t, "name", "") for t in topics[:3]] or ["Reasoning Models", "AI Coding Assistants"]
 
         return {
             "biggest_news": (
