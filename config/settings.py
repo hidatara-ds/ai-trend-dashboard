@@ -43,18 +43,25 @@ DEFAULT_KEYWORDS: List[str] = [
 
 DEFAULT_PLATFORM_WEIGHTS: Dict[str, float] = {
     "x": 1.2,
+    "github": 1.3,
     "threads": 1.1,
+    "youtube": 1.1,
+    "reddit": 1.1,
     "tiktok": 1.0,
     "instagram": 0.9,
-    "facebook": 0.8
+    "facebook": 0.8,
+    "pinterest": 0.8
 }
 
 DEFAULT_OPENROUTER_MODEL = "anthropic/claude-3.5-sonnet"
 DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+DEFAULT_SOCIALCRAWL_BASE_URL = "https://api.socialcrawl.io/v1"
 
 @dataclass
 class AppConfig:
     db_path: Path = DB_PATH
+    socialcrawl_api_key: str = field(default_factory=lambda: os.getenv("SOCIALCRAWL_API_KEY", ""))
+    socialcrawl_base_url: str = field(default_factory=lambda: os.getenv("SOCIALCRAWL_BASE_URL", DEFAULT_SOCIALCRAWL_BASE_URL))
     openrouter_api_key: str = field(default_factory=lambda: os.getenv("OPENROUTER_API_KEY", ""))
     openrouter_model: str = DEFAULT_OPENROUTER_MODEL
     twitter_bearer_token: str = field(default_factory=lambda: os.getenv("TWITTER_BEARER_TOKEN", ""))

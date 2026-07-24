@@ -5,7 +5,9 @@ from typing import List, Dict, Any, Tuple
 
 
 from database.db import DatabaseManager
+import os
 from crawler.base import BaseAdapter
+from crawler.socialcrawl import SocialCrawlAdapter
 from crawler.instagram import InstagramAdapter
 from crawler.tiktok import TikTokAdapter
 from crawler.threads import ThreadsAdapter
@@ -22,13 +24,21 @@ logger = logging.getLogger(__name__)
 class CrawlPipeline:
     def __init__(self, db_manager: DatabaseManager = None):
         self.db = db_manager or DatabaseManager()
-        self.adapters: List[BaseAdapter] = [
-            InstagramAdapter(),
-            TikTokAdapter(),
-            ThreadsAdapter(),
-            FacebookAdapter(),
-            XAdapter()
-        ]
+
+        # Dynamic adapter selection
+        socialcrawl_key = os.getenv("SOCIALCRAWL_API_KEY", "").strip()
+        if socialcrawl_key:
+            self.adapters: List[BaseAdapter] = [SocialCrawlAdapter()]
+        else:
+            self.adapters: List[BaseAdapter] = [
+                InstagramAdapter(),
+                TikTokAdapter(),
+                ThreadsAdapter(),
+                FacebookAdapter(),
+                XAdapter(),
+                SocialCrawlAdapter()
+            ]
+
         self.scorer = ScoringEngine()
         self.translator = AutoTranslator()
 
