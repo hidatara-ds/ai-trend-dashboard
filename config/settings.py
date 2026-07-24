@@ -55,7 +55,7 @@ DEFAULT_PLATFORM_WEIGHTS: Dict[str, float] = {
 
 DEFAULT_OPENROUTER_MODEL = "openai/gpt-4o-mini"
 DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-DEFAULT_SOCIALCRAWL_BASE_URL = "https://api.socialcrawl.io/v1"
+DEFAULT_SOCIALCRAWL_BASE_URL = "https://www.socialcrawl.dev/v1"
 
 @dataclass
 class AppConfig:

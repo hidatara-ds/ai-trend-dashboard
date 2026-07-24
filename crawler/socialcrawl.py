@@ -1,6 +1,8 @@
 import os
 import logging
 import httpx
+import concurrent.futures
+from datetime import datetime
 from typing import List, Dict, Any
 from crawler.base import BaseAdapter
 from crawler.mock_data import generate_mock_posts
@@ -9,19 +11,26 @@ from config.settings import DEFAULT_SOCIALCRAWL_BASE_URL
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_PLATFORMS = ["tiktok", "threads", "instagram", "x", "github", "youtube", "reddit", "pinterest"]
+PLATFORM_ENDPOINTS = {
+    "tiktok": "tiktok/search/top",
+    "threads": "threads/search",
+    "youtube": "youtube/search",
+    "reddit": "reddit/search",
+    "github": "github/search",
+    "hackernews": "hackernews/search"
+}
 
 class SocialCrawlAdapter(BaseAdapter):
     """
-    SocialCrawl 3rd-Party Unified Multi-Platform Search Adapter.
-    Executes a single API query across TikTok, Threads, Instagram, X, GitHub, YouTube, Reddit, Pinterest.
-    Normalizes multi-platform social results into standard Post dataclasses.
-    Falls back gracefully when SOCIALCRAWL_API_KEY is unconfigured.
+    SocialCrawl Official Multi-Platform API Adapter.
+    Endpoint: https://www.socialcrawl.dev/v1/
+    Header: x-api-key
+    Supported live social endpoints: TikTok, Threads, YouTube, Reddit, GitHub, HackerNews.
     """
 
     def __init__(self):
         self.api_key = os.getenv("SOCIALCRAWL_API_KEY", "").strip()
-        self.base_url = os.getenv("SOCIALCRAWL_BASE_URL", DEFAULT_SOCIALCRAWL_BASE_URL).strip()
+        self.base_url = os.getenv("SOCIALCRAWL_BASE_URL", DEFAULT_SOCIALCRAWL_BASE_URL).strip().rstrip("/")
 
     @property
     def platform_name(self) -> str:
@@ -54,65 +63,112 @@ class SocialCrawlAdapter(BaseAdapter):
         return fallback_posts
 
     def _fetch_from_socialcrawl_api(self, keywords: List[str], limit: int = 50) -> List[Post]:
-        query_str = " OR ".join(keywords[:6]) if keywords else "AI"
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "x-api-key": self.api_key,
             "Content-Type": "application/json"
         }
-        params = {
-            "query": query_str,
-            "platforms": ",".join(SUPPORTED_PLATFORMS),
-            "limit": limit
-        }
+        all_posts: List[Post] = []
+        query_str = keywords[0] if keywords else "AI"
+        per_plat_limit = max(5, limit // len(PLATFORM_ENDPOINTS))
 
-        with httpx.Client(timeout=15.0) as client:
-            resp = client.get(f"{self.base_url}/search", headers=headers, params=params)
-            resp.raise_for_status()
-            data = resp.json()
+        def fetch_platform(plat: str, endpoint: str) -> List[Post]:
+            try:
+                url = f"{self.base_url}/{endpoint}"
+                with httpx.Client(timeout=10.0) as client:
+                    resp = client.get(url, headers=headers, params={"query": query_str, "limit": per_plat_limit})
+                    if resp.status_code != 200:
+                        logger.warning(f"SocialCrawl {plat} endpoint returned status {resp.status_code}")
+                        return []
+                    
+                    data = resp.json()
+                    items = data.get("data", {}).get("items", []) or data.get("data", []) or data.get("items", [])
+                    if isinstance(items, dict):
+                        items = items.get("items", [])
+                    
+                    plat_posts: List[Post] = []
+                    for idx, item in enumerate(items):
+                        post_obj = item.get("post", {}) if isinstance(item, dict) and "post" in item else item
+                        computed = item.get("computed", {}) if isinstance(item, dict) else {}
 
-            items = data.get("data", []) or data.get("results", []) or data.get("posts", [])
-            posts: List[Post] = []
+                        if not isinstance(post_obj, dict):
+                            continue
 
-            for idx, item in enumerate(items):
-                platform = item.get("platform", "x").lower()
-                author = item.get("author") or item.get("username") or f"@{platform}_user"
-                if not author.startswith("@") and not author.startswith("http"):
-                    author = f"@{author}"
+                        # Extracted fields
+                        id_val = post_obj.get("id") or f"{plat}_{idx}_{hash(query_str)}"
+                        url_val = post_obj.get("url") or post_obj.get("permalink") or post_obj.get("link") or f"https://www.{plat}.com"
+                        
+                        content_obj = post_obj.get("content", {})
+                        if isinstance(content_obj, dict):
+                            text = content_obj.get("text") or content_obj.get("title") or content_obj.get("caption") or ""
+                            media_url = content_obj.get("media_urls") or content_obj.get("thumbnail_url")
+                        else:
+                            text = str(content_obj or post_obj.get("text") or post_obj.get("title") or "")
+                            media_url = None
 
-                text = item.get("text") or item.get("caption") or item.get("title") or item.get("content", "")
-                created_at = item.get("created_at") or item.get("timestamp") or item.get("date", "")
-                url = item.get("url") or item.get("permalink") or item.get("link", f"https://{platform}.com/{idx}")
-                lang = item.get("language") or item.get("lang", "en")
-                country = item.get("country", "International")
-                translation_en = item.get("translation_en")
+                        if isinstance(media_url, list) and media_url:
+                            media_url = media_url[0]
 
-                metrics = item.get("metrics", {})
-                likes = item.get("likes") or metrics.get("likes", 0)
-                comments = item.get("comments") or metrics.get("comments", 0)
-                shares = item.get("shares") or metrics.get("shares", 0)
-                views = item.get("views") or metrics.get("views", 0)
+                        author_obj = post_obj.get("author", {})
+                        if isinstance(author_obj, dict):
+                            author = author_obj.get("username") or author_obj.get("handle") or author_obj.get("display_name") or author_obj.get("name") or f"{plat}_creator"
+                        else:
+                            author = str(author_obj or f"{plat}_creator")
+                        
+                        if not author.startswith("@") and not author.startswith("http"):
+                            author = f"@{author}"
 
-                post_id = item.get("id") or f"{platform}_{idx}"
+                        engagement = post_obj.get("engagement", {})
+                        if isinstance(engagement, dict):
+                            likes = engagement.get("likes_count") or engagement.get("upvotes_count") or engagement.get("likes") or 0
+                            comments = engagement.get("comments_count") or engagement.get("comments") or 0
+                            shares = engagement.get("shares_count") or engagement.get("reposts_count") or engagement.get("shares") or 0
+                            views = engagement.get("views_count") or engagement.get("impressions_count") or engagement.get("views") or 0
+                        else:
+                            likes = comments = shares = views = 0
 
-                posts.append(Post(
-                    platform=platform,
-                    author=author,
-                    text=text,
-                    hashtags=[f"#{kw}" for kw in keywords if kw.lower() in text.lower()],
-                    likes=int(likes or 0),
-                    comments=int(comments or 0),
-                    shares=int(shares or 0),
-                    views=int(views or 0),
-                    created_at=str(created_at),
-                    url=str(url),
-                    media=item.get("media_url") or item.get("image"),
-                    language=lang,
-                    country=country,
-                    translation_en=translation_en,
-                    id=f"socialcrawl_{post_id}"
-                ))
+                        pub_at = post_obj.get("published_at") or post_obj.get("created_at") or datetime.utcnow().isoformat()
+                        lang = computed.get("language") or "en"
+                        
+                        # Nation detection
+                        country = "International"
+                        text_lower = text.lower()
+                        if any(c in text for c in ["的", "是", "在", "和", "人工智能", "模型", "深度", "月之暗面"]):
+                            country = "China"
+                            lang = "zh"
+                        elif any(w in text_lower for w in ["china", "chinese", "deepseek", "qwen", "moonshot", "kimi", "zhipu", "alibaba"]):
+                            country = "China"
+                        elif any(w in text_lower for w in ["indonesia", "indonesian", "komdigi", "indosat", "solo", "nusantara", "sahabat"]):
+                            country = "Indonesia"
 
-            return posts
+                        plat_posts.append(Post(
+                            platform=plat,
+                            author=author,
+                            text=text,
+                            hashtags=[f"#{kw}" for kw in keywords if kw.lower() in text_lower],
+                            likes=int(likes or 0),
+                            comments=int(comments or 0),
+                            shares=int(shares or 0),
+                            views=int(views or 0),
+                            created_at=str(pub_at),
+                            url=str(url_val),
+                            media=str(media_url) if media_url else None,
+                            language=lang,
+                            country=country,
+                            translation_en=None,
+                            id=f"socialcrawl_{plat}_{id_val}"
+                        ))
+                    return plat_posts
+            except Exception as e:
+                logger.error(f"Error fetching SocialCrawl platform {plat}: {e}")
+                return []
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            future_to_plat = {executor.submit(fetch_platform, plat, ep): plat for plat, ep in PLATFORM_ENDPOINTS.items()}
+            for future in concurrent.futures.as_completed(future_to_plat):
+                res_posts = future.result()
+                all_posts.extend(res_posts)
+
+        return all_posts
 
     def _fetch_live_news_rss(self, keywords: List[str], limit: int = 50) -> List[Post]:
         import xml.etree.ElementTree as ET
@@ -135,7 +191,6 @@ class SocialCrawlAdapter(BaseAdapter):
             for idx, item in enumerate(items):
                 title_elem = item.find("title")
                 link_elem = item.find("link")
-                pub_elem = item.find("pubDate")
 
                 title = title_elem.text if title_elem is not None else ""
                 link = link_elem.text if link_elem is not None else ""

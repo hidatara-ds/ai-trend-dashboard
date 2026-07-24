@@ -22,7 +22,9 @@ class ScoringEngine:
     def calculate_scores(self, post: Post) -> ScoredPost:
         now = datetime.utcnow()
         try:
-            created_dt = datetime.fromisoformat(post.created_at)
+            created_dt = datetime.fromisoformat(post.created_at.replace("Z", "+00:00"))
+            if created_dt.tzinfo is not None:
+                created_dt = created_dt.replace(tzinfo=None)
         except Exception:
             created_dt = now
 
