@@ -6,6 +6,23 @@ from typing import Dict, List
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_PATH = BASE_DIR / "ai_trends.db"
 ASSETS_DIR = BASE_DIR / "assets"
+ENV_PATH = BASE_DIR / ".env"
+
+def load_env_file():
+    if ENV_PATH.exists():
+        try:
+            for line in ENV_PATH.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    k_str = k.strip()
+                    v_str = v.strip().strip('"').strip("'")
+                    if k_str:
+                        os.environ[k_str] = v_str
+        except Exception:
+            pass
+
+load_env_file()
 
 DEFAULT_KEYWORDS: List[str] = [
     "ChatGPT",
@@ -40,6 +57,12 @@ class AppConfig:
     db_path: Path = DB_PATH
     openrouter_api_key: str = field(default_factory=lambda: os.getenv("OPENROUTER_API_KEY", ""))
     openrouter_model: str = DEFAULT_OPENROUTER_MODEL
+    twitter_bearer_token: str = field(default_factory=lambda: os.getenv("TWITTER_BEARER_TOKEN", ""))
+    threads_access_token: str = field(default_factory=lambda: os.getenv("THREADS_ACCESS_TOKEN", ""))
+    tiktok_access_token: str = field(default_factory=lambda: os.getenv("TIKTOK_ACCESS_TOKEN", ""))
+    instagram_access_token: str = field(default_factory=lambda: os.getenv("INSTAGRAM_ACCESS_TOKEN", ""))
+    facebook_access_token: str = field(default_factory=lambda: os.getenv("FACEBOOK_ACCESS_TOKEN", ""))
+    news_api_key: str = field(default_factory=lambda: os.getenv("NEWS_API_KEY", ""))
     platform_weights: Dict[str, float] = field(default_factory=lambda: DEFAULT_PLATFORM_WEIGHTS.copy())
     keywords: List[str] = field(default_factory=lambda: DEFAULT_KEYWORDS.copy())
     update_interval_minutes: int = 15

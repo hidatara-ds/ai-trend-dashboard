@@ -14,6 +14,7 @@ from crawler.x import XAdapter
 from scoring.engine import ScoringEngine
 from analyzer.deduplication import deduplicate_posts
 from analyzer.clustering import cluster_topics_from_posts
+from analyzer.translator import AutoTranslator
 from models.post import Post, ScoredPost
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ class CrawlPipeline:
             XAdapter()
         ]
         self.scorer = ScoringEngine()
+        self.translator = AutoTranslator()
 
     def run_crawl_cycle(self, limit_per_platform: int = 30) -> Dict[str, Any]:
         """
@@ -65,6 +67,13 @@ class CrawlPipeline:
 
         # Deduplicate
         unique_posts = deduplicate_posts(scored_posts, similarity_threshold=0.88)
+
+        # Auto-translate non-English posts if translation_en is missing
+        for p in unique_posts:
+            if not p.translation_en and p.language != "en":
+                trans = self.translator.translate_to_english(p.text, source_language=p.language)
+                if trans:
+                    p.translation_en = trans
 
         # Save to database
         saved_count = self.db.save_posts(unique_posts)
