@@ -16,10 +16,11 @@ class ScoringEngine:
     - Overall Trend Score: Explainable weighted combination (0.0 to 100.0).
     """
 
-    def __init__(self, platform_weights: Dict[str, float] = None):
+    def __init__(self, platform_weights: Dict[str, float] = None, half_life_hours: float = 24.0):
         self.platform_weights = platform_weights or DEFAULT_PLATFORM_WEIGHTS
+        self.decay_factor = math.log(2) / max(1.0, half_life_hours)
 
-    def calculate_scores(self, post: Post) -> ScoredPost:
+    def calculate_scores(self, post: Post, sentiment_score: float = 0.0) -> ScoredPost:
         now = datetime.utcnow()
         try:
             created_dt = datetime.fromisoformat(post.created_at.replace("Z", "+00:00"))
@@ -39,26 +40,31 @@ class ScoringEngine:
         virality_rate = raw_engagement / math.sqrt(hours_elapsed)
         virality_score = min(100.0, math.log10(max(1.0, virality_rate)) * 22.0)
 
-        # 3. Freshness Score (Exponential decay with ~24h half-life)
-        freshness_score = 100.0 * math.exp(-0.04 * hours_elapsed)
+        # 3. Freshness Score (Configurable exponential decay half-life)
+        freshness_score = 100.0 * math.exp(-self.decay_factor * hours_elapsed)
 
         # 4. Authority Score (Proxy based on author and verification hints)
         authority_score = 70.0
-        if post.author.startswith("@sama") or post.author.startswith("@karpathy") or post.author.startswith("@zuck"):
+        known_authorities = ["@sama", "@karpathy", "@zuck", "@ylecun", "@demishassabis", "openai", "deepmind", "anthropic"]
+        author_lower = post.author.lower()
+        if any(auth in author_lower for auth in known_authorities):
             authority_score = 95.0
         elif post.author.startswith("@"):
-            authority_score = 75.0
+            authority_score = 78.0
 
-        # 5. Platform Weight
+        # 5. Sentiment Multiplier (Boosts slightly positive viral news)
+        sentiment_multiplier = 1.0 + (max(-0.2, min(0.2, sentiment_score * 0.1)))
+
+        # 6. Platform Weight
         platform_weight = self.platform_weights.get(post.platform.lower(), 1.0)
 
-        # 6. Combined Trend Score
+        # 7. Combined Trend Score
         base_trend = (
             (0.35 * virality_score) +
             (0.25 * engagement_score) +
             (0.25 * freshness_score) +
             (0.15 * authority_score)
-        )
+        ) * sentiment_multiplier
         final_trend_score = min(100.0, round(base_trend * platform_weight, 1))
 
         breakdown = {
@@ -68,9 +74,10 @@ class ScoringEngine:
             "virality_score": round(virality_score, 1),
             "freshness_score": round(freshness_score, 1),
             "authority_score": round(authority_score, 1),
+            "sentiment_multiplier": round(sentiment_multiplier, 3),
             "platform_weight": platform_weight,
             "final_trend_score": final_trend_score,
-            "formula": "(0.35*Virality + 0.25*Engagement + 0.25*Freshness + 0.15*Authority) * PlatformWeight"
+            "formula": "(0.35*Virality + 0.25*Engagement + 0.25*Freshness + 0.15*Authority) * SentimentMult * PlatformWeight"
         }
 
         return ScoredPost(
@@ -102,3 +109,4 @@ class ScoringEngine:
 
     def score_batch(self, posts: List[Post]) -> List[ScoredPost]:
         return [self.calculate_scores(p) for p in posts]
+
