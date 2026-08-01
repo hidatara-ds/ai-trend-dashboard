@@ -28,9 +28,11 @@ class SocialCrawlAdapter(BaseAdapter):
     Supported live social endpoints: TikTok, Threads, YouTube, Reddit, GitHub, HackerNews.
     """
 
-    def __init__(self):
+    def __init__(self, timeout: float = 12.0, max_retries: int = 3):
         self.api_key = os.getenv("SOCIALCRAWL_API_KEY", "").strip()
         self.base_url = os.getenv("SOCIALCRAWL_BASE_URL", DEFAULT_SOCIALCRAWL_BASE_URL).strip().rstrip("/")
+        self.timeout = timeout
+        self.max_retries = max_retries
 
     @property
     def platform_name(self) -> str:
@@ -38,12 +40,16 @@ class SocialCrawlAdapter(BaseAdapter):
 
     def fetch_posts(self, keywords: List[str], limit: int = 50) -> List[Post]:
         if self.api_key:
-            try:
-                posts = self._fetch_from_socialcrawl_api(keywords, limit=limit)
-                if posts:
-                    return posts
-            except Exception as e:
-                logger.error(f"SocialCrawl API call failed: {e}. Falling back to live news crawler.")
+            for attempt in range(1, self.max_retries + 1):
+                try:
+                    posts = self._fetch_from_socialcrawl_api(keywords, limit=limit)
+                    if posts:
+                        return posts
+                except Exception as e:
+                    logger.warning(f"SocialCrawl API attempt {attempt}/{self.max_retries} failed: {e}")
+                    if attempt == self.max_retries:
+                        logger.error("SocialCrawl API maximum retries exhausted. Falling back to live news crawler.")
+
 
         # Real Live Articles Crawler (100% active working URLs)
         try:
