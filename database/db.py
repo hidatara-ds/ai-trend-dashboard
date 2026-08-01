@@ -287,7 +287,7 @@ class DatabaseManager:
                 return data
             return None
 
-    def get_posts_paginated(self, limit: int = 20, offset: int = 0, platform: Optional[str] = None) -> List[ScoredPost]:
+    def get_posts_paginated(self, limit: int = 20, offset: int = 0, platform: Optional[str] = None) -> List[Dict[str, Any]]:
         query = "SELECT * FROM posts"
         params: List[Any] = []
         if platform and platform != "All":
@@ -298,7 +298,15 @@ class DatabaseManager:
 
         with self.get_connection() as conn:
             cursor = conn.execute(query, tuple(params))
-            return [self._row_to_scored_post(row) for row in cursor.fetchall()]
+            results = []
+            for row in cursor.fetchall():
+                r = dict(row)
+                r["hashtags"] = json.loads(r["hashtags"] or "[]")
+                r["score_breakdown"] = json.loads(r["score_breakdown"] or "{}")
+                r["entities"] = json.loads(r["entities"] or "{}")
+                results.append(r)
+            return results
+
 
     def get_posts_count(self, platform: Optional[str] = None) -> int:
         query = "SELECT COUNT(*) as count FROM posts"
