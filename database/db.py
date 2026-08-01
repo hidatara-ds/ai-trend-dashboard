@@ -287,6 +287,31 @@ class DatabaseManager:
                 return data
             return None
 
+    def get_posts_paginated(self, limit: int = 20, offset: int = 0, platform: Optional[str] = None) -> List[ScoredPost]:
+        query = "SELECT * FROM posts"
+        params: List[Any] = []
+        if platform and platform != "All":
+            query += " WHERE platform = ?"
+            params.append(platform.lower())
+        query += " ORDER BY trend_score DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        with self.get_connection() as conn:
+            cursor = conn.execute(query, tuple(params))
+            return [self._row_to_scored_post(row) for row in cursor.fetchall()]
+
+    def get_posts_count(self, platform: Optional[str] = None) -> int:
+        query = "SELECT COUNT(*) as count FROM posts"
+        params: List[Any] = []
+        if platform and platform != "All":
+            query += " WHERE platform = ?"
+            params.append(platform.lower())
+
+        with self.get_connection() as conn:
+            cursor = conn.execute(query, tuple(params))
+            row = cursor.fetchone()
+            return row["count"] if row else 0
+
     def reset_database(self) -> None:
         self.reset_database_data()
 
@@ -297,4 +322,5 @@ class DatabaseManager:
             conn.execute("DELETE FROM crawl_logs")
             conn.execute("DELETE FROM ai_reports")
             conn.commit()
+
 
