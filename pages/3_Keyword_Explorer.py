@@ -72,8 +72,20 @@ def render_page():
         fig_bar = create_bar_chart(plat_df, x_col="Platform", y_col="Posts", title="Platform Volume Breakdown")
         st.plotly_chart(fig_bar, use_container_width=True)
 
-    # Matching Posts Feed
-    st.markdown(f"<div class='section-title'>Posts Discussing '{target_kw}'</div>", unsafe_allow_html=True)
+    # Matching Posts Feed & CSV Export
+    st.markdown("<div style='display: flex; justify-content: space-between; align-items: center;'>", unsafe_allow_html=True)
+    st.markdown(f"<div class='section-title'>Posts Discussing '{target_kw}' ({len(matching_posts)})</div>", unsafe_allow_html=True)
+
+    if matching_posts:
+        posts_df = pd.DataFrame([p if isinstance(p, dict) else p.to_dict() for p in matching_posts])
+        csv_data = posts_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Export Search Results (CSV)",
+            data=csv_data,
+            file_name=f"ai_trend_search_{target_kw.replace(' ', '_')}.csv",
+            mime="text/csv"
+        )
+
     if matching_posts:
         p1, p2 = st.columns(2)
         for idx, post in enumerate(matching_posts[:6]):
@@ -84,3 +96,4 @@ def render_page():
 
 if __name__ == "__main__" or "app" in __name__:
     render_page()
+
