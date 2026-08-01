@@ -86,12 +86,22 @@ Return ONLY raw valid JSON. No conversational text.
             "response_format": {"type": "json_object"}
         }
 
+        import re
+
         with httpx.Client(timeout=25.0) as client:
             resp = client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
             resp.raise_for_status()
             data = resp.json()
-            content = data["choices"][0]["message"]["content"]
-            return json.loads(content)
+            content = data["choices"][0]["message"]["content"].strip()
+            # Clean markdown code fences if present
+            cleaned_content = re.sub(r"^```json\s*", "", content, flags=re.MULTILINE)
+            cleaned_content = re.sub(r"^```\s*", "", cleaned_content, flags=re.MULTILINE).strip()
+            try:
+                return json.loads(cleaned_content)
+            except json.JSONDecodeError as parse_err:
+                logger.error(f"Failed to parse LLM JSON response: {parse_err}. Raw response: {content[:200]}")
+                raise
+
 
     def _generate_fallback_digest(self, posts: List[Any], topics: List[Any]) -> Dict[str, Any]:
         def get_val(item, key, default=""):
