@@ -107,3 +107,36 @@ def create_timeline_chart(events: List[Dict[str, Any]], title: str = "AI Release
     )
     fig.update_layout(**PLOTLY_DARK_LAYOUT)
     return fig
+
+def create_gauge_chart(value: float, title: str = "Virality Score") -> go.Figure:
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=value,
+        title={'text': title, 'font': {'color': '#fafafa', 'size': 14}},
+        gauge={
+            'axis': {'range': [0, 100], 'tickcolor': "#a1a1aa"},
+            'bar': {'color': "#10b981"},
+            'bgcolor': "#18181b",
+            'bordercolor': "#27272a",
+            'steps': [
+                {'range': [0, 40], 'color': 'rgba(239, 68, 68, 0.2)'},
+                {'range': [40, 70], 'color': 'rgba(245, 158, 11, 0.2)'},
+                {'range': [70, 100], 'color': 'rgba(16, 185, 129, 0.2)'}
+            ]
+        }
+    ))
+    fig.update_layout(**PLOTLY_DARK_LAYOUT)
+    return fig
+
+def create_donut_chart(df: pd.DataFrame, names_col: str, values_col: str, title: str = "") -> go.Figure:
+    fig = px.pie(
+        df,
+        names=names_col,
+        values=values_col,
+        hole=0.5,
+        title=title,
+        color_discrete_sequence=["#10b981", "#06b6d4", "#8b5cf6", "#f59e0b", "#f43f5e"]
+    )
+    fig.update_layout(**PLOTLY_DARK_LAYOUT)
+    return fig
+
