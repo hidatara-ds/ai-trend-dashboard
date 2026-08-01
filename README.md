@@ -42,8 +42,28 @@ AI Social Media Scraper/
 ├── database/              # SQLite manager with WAL mode and indexing
 ├── components/            # Reusable UI cards, metric scorecards, & Lucide SVG icons
 ├── utils/                 # Plotly dark theme chart factories & formatters
+├── tests/                 # Unit test suite (test_models, test_scoring, test_db)
 └── assets/                # Dark theme stylesheet (zinc aesthetic)
 ```
+
+---
+
+## Running Unit Tests
+
+The repository includes a standalone unit test suite covering data models, scoring engine formulas, and database operations.
+
+Run the test suite using Python's built-in `unittest` runner:
+
+```bash
+python -m unittest discover -s tests
+```
+
+Or run via `pytest` if installed in your environment:
+
+```bash
+pytest
+```
+
 
 ---
 
