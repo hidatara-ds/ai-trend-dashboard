@@ -135,18 +135,25 @@ class SocialCrawlAdapter(BaseAdapter):
                         pub_at = post_obj.get("published_at") or post_obj.get("created_at") or datetime.utcnow().isoformat()
                         lang = computed.get("language") or "en"
                         
+                        # Strict Language Filter (English & Indonesian Only)
+                        vietnamese_markers = ["à", "á", "ả", "ã", "ạ", "ă", "ắ", "ằ", "ẳ", "ẵ", "ặ", "ê", "ế", "ề", "ể", "ễ", "ệ", "ô", "ố", "ồ", "ổ", "ỗ", "ộ", "ơ", "ớ", "ờ", "ở", "ỡ", "ợ", "ư", "ứ", "ừ", "ử", "ữ", "ự", "đ", "hả", "thế", "khúc", "giặt", "giữ", "tui", "sẽ", "người", "không", "thì"]
+                        if any(m in text.lower() for m in vietnamese_markers) or any('\u0e00' <= char <= '\u0e7f' for char in text):
+                            continue
+
                         # Nation detection
                         country = "International"
                         text_lower = text.lower()
-                        if any(c in text for c in ["的", "是", "在", "和", "人工智能", "模型", "深度", "月之暗面"]):
+                        if any(c in text for c in ["的", "是", "在", "和", "人工智能", "模型", "深度"]):
                             country = "China"
                             lang = "zh"
-                        elif any(w in text_lower for w in ["china", "chinese", "deepseek", "qwen", "moonshot", "kimi", "zhipu", "alibaba"]):
+                        elif any(w in text_lower for w in ["china", "chinese", "deepseek", "qwen", "moonshot", "kimi", "zhipu"]):
                             country = "China"
                         elif any(w in text_lower for w in ["indonesia", "indonesian", "komdigi", "indosat", "solo", "nusantara", "sahabat"]):
                             country = "Indonesia"
+                            lang = "id"
 
                         plat_posts.append(Post(
+
                             platform=plat,
                             author=author,
                             text=text,
