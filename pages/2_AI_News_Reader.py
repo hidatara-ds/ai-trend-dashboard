@@ -39,12 +39,18 @@ def render_page():
 
     ext_icon = get_icon_html("external", "#06b6d4")
 
+    import html as html_lib
+    import re
+
     # Render Grid of News Cards with Hero Images
     cols = st.columns(3)
     for idx, post in enumerate(filtered_posts[:24]):
         col = cols[idx % 3]
-        text = post.get("text", "")
-        author = post.get("author", "@news_source")
+        raw_text = post.get("text", "")
+        # Strip raw HTML tags and escape special chars
+        clean_text = re.sub(r'<[^>]+>', '', raw_text)
+        escaped_text = html_lib.escape(clean_text)
+        author = html_lib.escape(post.get("author", "@news_source"))
         platform = post.get("platform", "x").lower()
         url = post.get("url", "#")
         
@@ -64,37 +70,27 @@ def render_page():
         elif country == "Indonesia":
             country_badge = "🇮🇩 Indonesia"
 
-        with col:
-            html = f"""
-            <div style="background-color: #18181b; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; margin-bottom: 1.25rem; transition: transform 0.2s ease;">
-                <div style="height: 160px; width: 100%; overflow: hidden; position: relative; background: #09090b;">
-                    <img src="{media}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='{default_media}';" />
-                    <div style="position: absolute; top: 10px; left: 10px; background: rgba(9,9,11,0.85); border: 1px solid #27272a; color: #38bdf8; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; backdrop-filter: blur(4px);">
-                        {country_badge}
-                    </div>
-                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(9,9,11,0.85); border: 1px solid #27272a; color: #a1a1aa; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">
-                        {platform}
-                    </div>
-                </div>
+        card_html = (
+            f'<div style="background-color: #18181b; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; margin-bottom: 1.25rem;">'
+            f'<div style="height: 160px; width: 100%; overflow: hidden; position: relative; background: #09090b;">'
+            f'<img src="{media}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src=\'{default_media}\';" />'
+            f'<div style="position: absolute; top: 10px; left: 10px; background: rgba(9,9,11,0.85); border: 1px solid #27272a; color: #38bdf8; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;">{country_badge}</div>'
+            f'<div style="position: absolute; top: 10px; right: 10px; background: rgba(9,9,11,0.85); border: 1px solid #27272a; color: #a1a1aa; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">{platform}</div>'
+            f'</div>'
+            f'<div style="padding: 1rem;">'
+            f'<div style="font-size: 0.75rem; color: #a1a1aa; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">'
+            f'<span style="color: #06b6d4; font-weight: 600;">{author}</span><span>{rel_time}</span>'
+            f'</div>'
+            f'<div style="font-size: 0.9rem; font-weight: 600; color: #fafafa; line-height: 1.4; margin-bottom: 0.75rem; min-height: 3.8em;">{escaped_text}</div>'
+            f'<div style="border-top: 1px solid #27272a; padding-top: 0.6rem; display: flex; justify-content: space-between; align-items: center;">'
+            f'<span style="font-size: 0.7rem; color: #10b981; font-weight: 700;">VIRALITY SCORE {post.get("trend_score", 82.0)}</span>'
+            f'<a href="{url}" target="_blank" style="color: #38bdf8; text-decoration: none; font-size: 0.8rem; font-weight: 600;">Read Article {ext_icon}</a>'
+            f'</div></div></div>'
+        )
 
-                <div style="padding: 1rem;">
-                    <div style="font-size: 0.75rem; color: #a1a1aa; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="color: #06b6d4; font-weight: 600;">{author}</span>
-                        <span>{rel_time}</span>
-                    </div>
-                    <div style="font-size: 0.95rem; font-weight: 600; color: #fafafa; line-height: 1.4; margin-bottom: 0.75rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 3.9em;">
-                        {text}
-                    </div>
-                    <div style="border-top: 1px solid #27272a; padding-top: 0.6rem; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 0.7rem; color: #10b981; font-weight: 700;">VIRALITY SCORE {post.get('trend_score', 82.0)}</span>
-                        <a href="{url}" target="_blank" style="color: #38bdf8; text-decoration: none; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-                            Read Article {ext_icon}
-                        </a>
-                    </div>
-                </div>
-            </div>
-            """
-            st.markdown(html, unsafe_allow_html=True)
+        with col:
+            st.markdown(card_html, unsafe_allow_html=True)
+
 
 if __name__ == "__main__" or "app" in __name__:
     render_page()
