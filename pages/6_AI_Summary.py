@@ -22,8 +22,11 @@ def render_page():
                 st.rerun()
 
     digest = service.get_latest_digest()
+    if not digest or not digest.get("biggest_news"):
+        digest = service.generate_daily_digest()
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+
 
     # Render Digest Sections in sleek dark cards
     cpu_icon = get_icon_html("cpu", "#10b981")
