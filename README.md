@@ -33,9 +33,9 @@ Designed with a minimal dark UI inspired by Linear and Vercel.
 ```text
 AI Social Media Scraper/
 ├── app.py                 # Streamlit entry point & navigation routing
-├── pages/                 # Sub-pages (Home, Trending Topics, Keywords, Feed, Analytics, Summary, Settings)
+├── pages/                 # Ordered Sub-pages (Home, AI News Reader, Trending Topics, Keywords, Social Feed, Reddit Community, Analytics, Summary, Settings)
 ├── models/                # Dataclasses (Post, ScoredPost, Topic, PlatformMetrics)
-├── crawler/               # Standardized platform adapters (BaseAdapter + 5 platforms + mock seed generator)
+├── crawler/               # Standardized platform adapters (SocialCrawl + Reddit RSS + Live News RSS)
 ├── scoring/               # Multi-factor explainable trend scoring engine
 ├── analyzer/              # TF-IDF deduplication, topic clustering, & OpenRouter client
 ├── services/              # Threaded crawler pipeline & report orchestration
@@ -43,8 +43,9 @@ AI Social Media Scraper/
 ├── components/            # Reusable UI cards, metric scorecards, & Lucide SVG icons
 ├── utils/                 # Plotly dark theme chart factories & formatters
 ├── tests/                 # Unit test suite (test_models, test_scoring, test_db)
-└── assets/                # Dark theme stylesheet (zinc aesthetic)
+└── assets/                # Dark theme stylesheet & page screenshots
 ```
+
 
 ---
 
