@@ -23,15 +23,30 @@ def render_page():
     with c1:
         search_query = st.text_input("🔍 Search AI News:", "", placeholder="Type topic, e.g., DeepSeek, Claude 3.7, OpenAI, Agent...")
     with c2:
-        selected_country = st.selectbox("Filter Region:", ["All Regions", "International", "China", "Indonesia"])
+        selected_country = st.selectbox(
+            "Filter Region:",
+            ["All Active Regions (Default)", "🌐 Global / International", "🇮🇩 Indonesia", "🇨🇳 Hong Kong / China", "🇩🇪 Germany", "🇯🇵 Japan"]
+        )
 
     filtered_posts = news_posts
+    if selected_country == "All Active Regions (Default)":
+        # Hide China by default unless explicitly selected
+        filtered_posts = [p for p in filtered_posts if p.get("country") != "China"]
+    elif selected_country == "🌐 Global / International":
+        filtered_posts = [p for p in filtered_posts if p.get("country") == "International"]
+    elif selected_country == "🇮🇩 Indonesia":
+        filtered_posts = [p for p in filtered_posts if p.get("country") == "Indonesia"]
+    elif selected_country == "🇨🇳 Hong Kong / China":
+        filtered_posts = [p for p in filtered_posts if p.get("country") in ["China", "Hong Kong"]]
+    elif selected_country == "🇩🇪 Germany":
+        filtered_posts = [p for p in filtered_posts if p.get("country") == "Germany"]
+    elif selected_country == "🇯🇵 Japan":
+        filtered_posts = [p for p in filtered_posts if p.get("country") == "Japan"]
+
     if search_query.strip():
         sq = search_query.strip().lower()
         filtered_posts = [p for p in filtered_posts if sq in p.get("text", "").lower() or sq in p.get("author", "").lower()]
 
-    if selected_country != "All Regions":
-        filtered_posts = [p for p in filtered_posts if p.get("country") == selected_country]
 
     if not filtered_posts:
         st.info("No live news articles matching your filter. Try clearing the search or switching region filter!")
