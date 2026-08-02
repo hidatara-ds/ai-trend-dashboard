@@ -45,8 +45,16 @@ def render_page():
         col = cols[idx % 3]
         text = post.get("text", "")
         author = post.get("author", "@news_source")
+        platform = post.get("platform", "x").lower()
         url = post.get("url", "#")
-        media = post.get("media") or "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
+        
+        # TikTok / broken image fallback handling
+        tiktok_fallback = "https://images.unsplash.com/photo-1611605698335-8b1569810432?w=800&auto=format&fit=crop&q=80"
+        general_fallback = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
+        
+        default_media = tiktok_fallback if platform == "tiktok" else general_fallback
+        media = post.get("media") if post.get("media") and not "tiktok.com" in str(post.get("media")) else default_media
+
         rel_time = format_relative_time(post.get("created_at", ""))
         country = post.get("country", "International")
 
@@ -60,11 +68,15 @@ def render_page():
             html = f"""
             <div style="background-color: #18181b; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; margin-bottom: 1.25rem; transition: transform 0.2s ease;">
                 <div style="height: 160px; width: 100%; overflow: hidden; position: relative; background: #09090b;">
-                    <img src="{media}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80'" />
+                    <img src="{media}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='{default_media}';" />
                     <div style="position: absolute; top: 10px; left: 10px; background: rgba(9,9,11,0.85); border: 1px solid #27272a; color: #38bdf8; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; backdrop-filter: blur(4px);">
                         {country_badge}
                     </div>
+                    <div style="position: absolute; top: 10px; right: 10px; background: rgba(9,9,11,0.85); border: 1px solid #27272a; color: #a1a1aa; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">
+                        {platform}
+                    </div>
                 </div>
+
                 <div style="padding: 1rem;">
                     <div style="font-size: 0.75rem; color: #a1a1aa; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                         <span style="color: #06b6d4; font-weight: 600;">{author}</span>
