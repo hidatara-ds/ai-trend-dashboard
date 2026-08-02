@@ -182,75 +182,87 @@ class SocialCrawlAdapter(BaseAdapter):
         from datetime import datetime
 
         query_terms = "+OR+".join(keywords[:5]) if keywords else "AI+OpenAI+DeepSeek+Claude"
-        rss_url = f"https://news.google.com/rss/search?q={query_terms}&hl=en-US&gl=US&ceid=US:en"
+        rss_urls = [
+            (f"https://news.google.com/rss/search?q={query_terms}&hl=en-US&gl=US&ceid=US:en", "International"),
+            ("https://news.google.com/rss/search?q=Kecerdasan+Buatan+OR+AI+Teknologi+OR+Komdigi+OR+Indosat+AI&hl=id-ID&gl=ID&ceid=ID:id", "Indonesia")
+        ]
+
+        posts: List[Post] = []
+        platforms = ["x", "threads", "tiktok", "instagram", "github", "youtube", "reddit"]
 
         with httpx.Client(timeout=12.0, follow_redirects=True) as client:
-            resp = client.get(rss_url)
-            resp.raise_for_status()
+            for rss_url, default_country in rss_urls:
+                try:
+                    resp = client.get(rss_url)
+                    if resp.status_code != 200:
+                        continue
 
-            root = ET.fromstring(resp.text)
-            items = root.findall('.//item')[:limit]
+                    root = ET.fromstring(resp.text)
+                    items = root.findall('.//item')[:limit // 2]
 
-            posts: List[Post] = []
-            platforms = ["x", "threads", "tiktok", "instagram", "github", "youtube", "reddit"]
+                    for idx, item in enumerate(items):
+                        title_elem = item.find("title")
+                        link_elem = item.find("link")
 
-            for idx, item in enumerate(items):
-                title_elem = item.find("title")
-                link_elem = item.find("link")
+                        title = title_elem.text if title_elem is not None else ""
+                        link = link_elem.text if link_elem is not None else ""
 
-                title = title_elem.text if title_elem is not None else ""
-                link = link_elem.text if link_elem is not None else ""
+                        author = "@tech_news"
+                        if " - " in title:
+                            parts = title.rsplit(" - ", 1)
+                            title = parts[0]
+                            author = f"@{parts[1].replace(' ', '_').replace('.', '').lower()}"
 
-                author = "@tech_news"
-                if " - " in title:
-                    parts = title.rsplit(" - ", 1)
-                    title = parts[0]
-                    author = f"@{parts[1].replace(' ', '_').replace('.', '').lower()}"
+                        platform = random.choice(platforms)
+                        country = default_country
+                        title_lower = title.lower()
+                        if default_country == "International":
+                            if any(w in title_lower for w in ["china", "chinese", "deepseek", "qwen", "moonshot", "kimi", "zhipu", "alibaba"]):
+                                country = "China"
+                            elif any(w in title_lower for w in ["indonesia", "indonesian", "komdigi", "indosat", "solo", "nusantara", "sahabat"]):
+                                country = "Indonesia"
 
-                platform = random.choice(platforms)
-                country = "International"
-                title_lower = title.lower()
-                if any(w in title_lower for w in ["china", "chinese", "deepseek", "qwen", "moonshot", "kimi", "zhipu", "alibaba"]):
-                    country = "China"
-                elif any(w in title_lower for w in ["indonesia", "indonesian", "komdigi", "indosat", "solo", "nusantara", "sahabat"]):
-                    country = "Indonesia"
 
-                # Hero image extraction (media:content, enclosure, or contextual AI tech image)
-                media_url = None
-                media_elem = item.find('{http://search.yahoo.com/mrss/}content') or item.find('enclosure')
-                if media_elem is not None:
-                    media_url = media_elem.attrib.get('url')
 
-                if not media_url:
-                    # High quality curated AI image fallbacks based on topic
-                    if "deepseek" in title_lower or "china" in title_lower:
-                        media_url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
-                    elif "claude" in title_lower or "anthropic" in title_lower:
-                        media_url = "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=800&auto=format&fit=crop&q=80"
-                    elif "gemini" in title_lower or "google" in title_lower:
-                        media_url = "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&auto=format&fit=crop&q=80"
-                    elif "agent" in title_lower or "code" in title_lower or "developer" in title_lower:
-                        media_url = "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80"
-                    else:
-                        media_url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
+                        # Hero image extraction (media:content, enclosure, or contextual AI tech image)
+                        media_url = None
+                        media_elem = item.find('{http://search.yahoo.com/mrss/}content') or item.find('enclosure')
+                        if media_elem is not None:
+                            media_url = media_elem.attrib.get('url')
 
-                posts.append(Post(
-                    platform=platform,
-                    author=author,
-                    text=title,
-                    hashtags=[f"#{kw}" for kw in keywords if kw.lower() in title.lower()],
-                    likes=random.randint(450, 19500),
-                    comments=random.randint(55, 3400),
-                    shares=random.randint(20, 1800),
-                    views=random.randint(8000, 450000),
-                    created_at=datetime.utcnow().isoformat(),
-                    url=link,
-                    media=media_url,
-                    language="en",
-                    country=country,
-                    translation_en=None,
-                    id=f"live_rss_{idx}_{abs(hash(link))}"
-                ))
+                        if not media_url:
+                            # High quality curated AI image fallbacks based on topic
+                            if "deepseek" in title_lower or "china" in title_lower:
+                                media_url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
+                            elif "claude" in title_lower or "anthropic" in title_lower:
+                                media_url = "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=800&auto=format&fit=crop&q=80"
+                            elif "gemini" in title_lower or "google" in title_lower:
+                                media_url = "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&auto=format&fit=crop&q=80"
+                            elif "agent" in title_lower or "code" in title_lower or "developer" in title_lower:
+                                media_url = "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80"
+                            else:
+                                media_url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
 
-            return posts
+                        posts.append(Post(
+                            platform=platform,
+                            author=author,
+                            text=title,
+                            hashtags=[f"#{kw}" for kw in keywords if kw.lower() in title.lower()],
+                            likes=random.randint(450, 19500),
+                            comments=random.randint(55, 3400),
+                            shares=random.randint(20, 1800),
+                            views=random.randint(8000, 450000),
+                            created_at=datetime.utcnow().isoformat(),
+                            url=link,
+                            media=media_url,
+                            language="en",
+                            country=country,
+                            translation_en=None,
+                            id=f"live_rss_{idx}_{abs(hash(link))}"
+                        ))
+                except Exception as e:
+                    logger.error(f"Error crawling RSS feed {rss_url}: {e}")
+
+        return posts
+
 
