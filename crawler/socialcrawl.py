@@ -215,6 +215,25 @@ class SocialCrawlAdapter(BaseAdapter):
                 elif any(w in title_lower for w in ["indonesia", "indonesian", "komdigi", "indosat", "solo", "nusantara", "sahabat"]):
                     country = "Indonesia"
 
+                # Hero image extraction (media:content, enclosure, or contextual AI tech image)
+                media_url = None
+                media_elem = item.find('{http://search.yahoo.com/mrss/}content') or item.find('enclosure')
+                if media_elem is not None:
+                    media_url = media_elem.attrib.get('url')
+
+                if not media_url:
+                    # High quality curated AI image fallbacks based on topic
+                    if "deepseek" in title_lower or "china" in title_lower:
+                        media_url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
+                    elif "claude" in title_lower or "anthropic" in title_lower:
+                        media_url = "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=800&auto=format&fit=crop&q=80"
+                    elif "gemini" in title_lower or "google" in title_lower:
+                        media_url = "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&auto=format&fit=crop&q=80"
+                    elif "agent" in title_lower or "code" in title_lower or "developer" in title_lower:
+                        media_url = "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=80"
+                    else:
+                        media_url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80"
+
                 posts.append(Post(
                     platform=platform,
                     author=author,
@@ -226,6 +245,7 @@ class SocialCrawlAdapter(BaseAdapter):
                     views=random.randint(8000, 450000),
                     created_at=datetime.utcnow().isoformat(),
                     url=link,
+                    media=media_url,
                     language="en",
                     country=country,
                     translation_en=None,
@@ -233,3 +253,4 @@ class SocialCrawlAdapter(BaseAdapter):
                 ))
 
             return posts
+
