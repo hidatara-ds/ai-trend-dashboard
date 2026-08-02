@@ -113,41 +113,6 @@ SAMPLE_TEMPLATES = [
     }
 ]
 
-def generate_mock_posts(platform: str, keywords: List[str], limit: int = 30) -> List[Post]:
-    posts: List[Post] = []
-    authors = SAMPLE_AUTHORS.get(platform, ["@ai_news_daily"])
-
-    now = datetime.utcnow()
-
-    for i in range(limit):
-        tmpl = random.choice(SAMPLE_TEMPLATES)
-        author = random.choice(authors)
-
-        hours_ago = random.uniform(0.1, 48.0)
-        created_at = (now - timedelta(hours=hours_ago)).isoformat()
-
-        base_likes = random.randint(150, 18000)
-        comments = int(base_likes * random.uniform(0.05, 0.25))
-        shares = int(base_likes * random.uniform(0.02, 0.15))
-        views = base_likes * random.randint(8, 35)
-
-        url = f"https://{platform}.com/{author.replace('@', '')}/status/{1000000 + i + random.randint(100, 999)}"
-
-        posts.append(Post(
-            platform=platform,
-            author=author,
-            text=tmpl["text"],
-            hashtags=tmpl["hashtags"],
-            likes=base_likes,
-            comments=comments,
-            shares=shares,
-            views=views,
-            created_at=created_at,
-            url=url,
-            media=f"https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60" if i % 3 == 0 else None,
-            language=tmpl.get("language", "en"),
-            country=tmpl.get("country", "International"),
-            translation_en=tmpl.get("translation_en"),
-            id=f"{platform}_{i}_{int(hours_ago)}"
-        ))
-    return posts
+def generate_mock_posts(platform: str, count: int = 10) -> List[Post]:
+    """Mock seed generation disabled in favor of 100% real live news crawling."""
+    return []

@@ -40,5 +40,7 @@ st.sidebar.markdown("""
 """, unsafe_allow_html=True)
 
 # Switch to Home page content if run directly
-import pages.Home_1 as Home_1
-Home_1.render_page()
+import importlib
+home_module = importlib.import_module("pages.1_Home")
+home_module.render_page()
+
